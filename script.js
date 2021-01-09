@@ -1,129 +1,138 @@
+const word = document.getElementById('word');
+const text = document.getElementById('text');
+const scoreEl = document.getElementById('score');
+const timeEl = document.getElementById('time');
+const endgameEl = document.getElementById('end-game-container');
+const settingsBtn = document.getElementById('settings-btn');
+const settings = document.getElementById('settings');
+const settingsForm = document.getElementById('settings-form');
+const difficultySelect = document.getElementById('difficulty');
 
-const RANDOM_QUOTE_API_URL = "http://api.quotable.io/random";
-const quoteDisplayElement = document.getElementById("quoteDisplay")
-const quoteAuthorElement = document.getElementById("quoteAuthor")
-const quoteInputElement = document.getElementById("quoteInput")
-const timerElement = document.getElementById("timer")
-const btnNextElement = document.getElementById("btnNext")
+// List of words for game
+const words = [
+  'sigh',
+  'tense',
+  'airplane',
+  'ball',
+  'pies',
+  'juice',
+  'warlike',
+  'bad',
+  'north',
+  'dependent',
+  'steer',
+  'silver',
+  'highfalutin',
+  'superficial',
+  'quince',
+  'eight',
+  'feeble',
+  'admit',
+  'drag',
+  'loving'
+];
 
-let myTime
-let totalKeysPress = 0
-let correctKeysPress
-let incorrectKeysPress
+// Init word
+let randomWord;
 
-let correct = true;
+// Init score
+let score = 0;
 
-// document.getElementById("quoteInput").onkeydown = function(){    
-//     totalKeysPress ++;
-//     //console.log(totalKeysPress)
-// }
+// Init time
+let time = 10;
 
-document.getElementById("quoteInput").onkeydown = function(e){    
-    
-    if( !(e.key === "Shift" || e.key === "Backspace"))
-    totalKeysPress ++;
-    //console.log(totalKeysPress)
+// Set difficulty to value in ls or medium
+let difficulty =
+  localStorage.getItem('difficulty') !== null
+    ? localStorage.getItem('difficulty')
+    : 'medium';
+
+// Set difficulty select value
+difficultySelect.value =
+  localStorage.getItem('difficulty') !== null
+    ? localStorage.getItem('difficulty')
+    : 'medium';
+
+// Focus on text on start
+text.focus();
+
+// Start counting down
+const timeInterval = setInterval(updateTime, 1000);
+
+// Generate random word from array
+function getRandomWord() {
+  return words[Math.floor(Math.random() * words.length)];
 }
 
-quoteInputElement.addEventListener('input', () => {
-    
-    correctKeysPress = 0
-    incorrectKeysPress = 0
-    const arrayQuote = quoteDisplayElement.querySelectorAll('span')
-    const arrayValue = quoteInputElement.value.split('')
-    arrayQuote.forEach((characterSpan, index) => {
-        const character = arrayValue[index]
-        if (character == null) {
-            characterSpan.classList.remove('correct')
-            characterSpan.classList.remove('incorrect')
-            correct = false;
-        }else if (character === characterSpan.innerText) {
-            correctKeysPress ++
-            characterSpan.classList.add('correct')
-            characterSpan.classList.remove('incorrect')
-            correct = true;
-        } else {
-            incorrectKeysPress ++
-            characterSpan.classList.remove('correct')
-            characterSpan.classList.add('incorrect')
-            correct = false;
-        }
+// Add word to DOM
+function addWordToDOM() {
+  randomWord = getRandomWord();
+  word.innerHTML = randomWord;
+}
 
-    })
+// Update score
+function updateScore() {
+  score++;
+  scoreEl.innerHTML = score;
+}
 
-    if(correct) {
-        showTime();
-        setTimeout(renderNewQuote,5000);
-        
-        //renderNewQuote()
+// Update time
+function updateTime() {
+  time--;
+  timeEl.innerHTML = time + 's';
+
+  if (time === 0) {
+    clearInterval(timeInterval);
+    // end game
+    gameOver();
+  }
+}
+
+// Game over, show end screen
+function gameOver() {
+  endgameEl.innerHTML = `
+    <h1>Time ran out</h1>
+    <p>Your final score is ${score}</p>
+    <button onclick="location.reload()">Reload</button>
+  `;
+
+  endgameEl.style.display = 'flex';
+}
+
+addWordToDOM();
+
+// Event listeners
+
+// Typing
+text.addEventListener('input', e => {
+  const insertedText = e.target.value;
+
+  if (insertedText === randomWord) {
+    addWordToDOM();
+    updateScore();
+
+    // Clear
+    e.target.value = '';
+
+    if (difficulty === 'hard') {
+      time += 2;
+    } else if (difficulty === 'medium') {
+      time += 3;
+    } else {
+      time += 5;
     }
-})
 
-function showTime(){
-    
-    quoteDisplayElement.innerText = "Your time: " + myTime + "s.\n" +
-    "Total keys press = " + totalKeysPress + "\n" +
-    "Correct keys press = " + correctKeysPress + "\n" +
-    "Incorrect keys press = " + (totalKeysPress - correctKeysPress) + "\n" +
-    "% de acierto = " + ((correctKeysPress * 100 ) / totalKeysPress).toFixed(2) + " %" 
-    quoteAuthorElement.innerText = ""
-    quoteInputElement.style.display = "none"
-    timerElement.style.visibility = "hidden"
-    totalKeysPress = 0
-    correctKeysPress = 0
-    incorrectKeysPress = 0
+    updateTime();
+  }
+});
 
-    //btnNextElement.style.visibility = "hidden"
-    //renderNewQuote()
-}
+// Settings btn click
+settingsBtn.addEventListener('click', () => settings.classList.toggle('hide'));
 
-function getRandomQuote() {
-    return fetch(RANDOM_QUOTE_API_URL)
-        .then(response => response.json())
-        // .then(data => data.content);
-        .then(data => data);
-}
-
-async function renderNewQuote() {
-
-    
-
-    const quote = await getRandomQuote();
-    quoteDisplayElement.innerText = '' //quote.content;
-    quoteAuthorElement.innerText = quote.author;
-    quote.content.split('').forEach(character => {
-        const characterSpan = document.createElement('span')
-        characterSpan.innerText = character
-        quoteDisplayElement.appendChild(characterSpan)
-    })
-    quoteInputElement.value = null;
-    quoteInputElement.style.display = "block"
-    timerElement.style.visibility = "visible"
-    //btnNextElement.style.visibility = "visible"
-    
-    startTimer()
-}
-let startTime 
-function startTimer(){
-    timerElement.innerText = 0
-    startTime = new Date()
-    setInterval(() => {
-        timerElement.innerText = getTimerTime()
-        myTime = getTimerTime()
-    }, 1000);
-}
-
-function getTimerTime(){
-    return Math.floor((new Date() - startTime) / 1000)
-}
-
-function nextQuote(){
-    renderNewQuote();
-}
-
-renderNewQuote()
-
-
-
+// Settings select
+settingsForm.addEventListener('change', e => {
+  difficulty = e.target.value;
+  localStorage.setItem('difficulty', difficulty);
+});
 
 
